@@ -36,6 +36,9 @@ public class User {
     @Column(name = "avatar_url", length = 500)
     private String avatarUrl;
 
+    @Column(name = "password_hash", length = 255)
+    private String passwordHash;
+
     @JdbcTypeCode(SqlTypes.ARRAY)
     @Column(name = "target_roles", columnDefinition = "text[]")
     @Builder.Default
