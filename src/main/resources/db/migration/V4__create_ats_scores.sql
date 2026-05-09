@@ -1,4 +1,4 @@
-CREATE TABLE ats_scores (
+CREATE TABLE if not exists ats_scores (
     id                 UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id            UUID        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     resume_id          UUID        NOT NULL REFERENCES resumes(id) ON DELETE CASCADE,
@@ -10,5 +10,5 @@ CREATE TABLE ats_scores (
     created_at         TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_ats_scores_user_id   ON ats_scores(user_id);
-CREATE INDEX idx_ats_scores_resume_id ON ats_scores(resume_id);
+CREATE INDEX if not exists idx_ats_scores_user_id   ON ats_scores(user_id);
+CREATE INDEX if not exists idx_ats_scores_resume_id ON ats_scores(resume_id);

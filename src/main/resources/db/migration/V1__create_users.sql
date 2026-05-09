@@ -1,4 +1,4 @@
-CREATE TABLE users (
+CREATE TABLE if not exists users (
     id                  UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
     provider            VARCHAR(50)  NOT NULL,
     provider_id         VARCHAR(255) NOT NULL,
@@ -16,4 +16,4 @@ CREATE TABLE users (
     CONSTRAINT uq_users_email    UNIQUE (email)
 );
 
-CREATE INDEX idx_users_email ON users(email);
+CREATE INDEX if not exists idx_users_email  ON users(email);
