@@ -1,6 +1,7 @@
 package com.autoapply.config;
 
 import com.autoapply.service.auth.CustomOAuth2UserService;
+import com.autoapply.service.auth.CustomOidcUserService;
 import com.autoapply.service.auth.LocalUserDetailsService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletResponse;
@@ -29,6 +30,8 @@ public class SecurityConfig {
 
     @NonNull
     private final CustomOAuth2UserService customOAuth2UserService;
+    @NonNull
+    private final CustomOidcUserService customOidcUserService;
     @NonNull
     private final LocalUserDetailsService localUserDetailsService;
     @NonNull
@@ -65,7 +68,10 @@ public class SecurityConfig {
                 .anyRequest().authenticated()
             )
             .oauth2Login(oauth2 -> oauth2
-                .userInfoEndpoint(ui -> ui.userService(customOAuth2UserService))
+                .userInfoEndpoint(ui -> ui
+                    .userService(customOAuth2UserService)
+                    .oidcUserService(customOidcUserService)
+                )
                 .successHandler(oauth2SuccessHandler())
                 .failureHandler((request, response, exception) -> {
                     response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);

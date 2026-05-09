@@ -7,7 +7,8 @@ import com.autoapply.entity.User;
 import com.autoapply.repository.UserRepository;
 import com.autoapply.service.auth.LocalAuthService;
 import com.autoapply.service.auth.UserPrincipal;
-import jakarta.servlet.http.HttpSession;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -15,6 +16,9 @@ import org.springframework.http.ResponseEntity;
 import java.util.List;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -26,6 +30,8 @@ public class AuthController {
 
     private final UserRepository userRepository;
     private final LocalAuthService localAuthService;
+    private final HttpSessionSecurityContextRepository securityContextRepository =
+            new HttpSessionSecurityContextRepository();
 
     @PostMapping("/register")
     public ResponseEntity<UserResponse> register(@Valid @RequestBody RegisterRequest req) {
@@ -34,13 +40,19 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<UserResponse> login(@Valid @RequestBody LoginRequest req, HttpSession session) {
+    public ResponseEntity<UserResponse> login(@Valid @RequestBody LoginRequest req,
+                                               HttpServletRequest servletRequest,
+                                               HttpServletResponse servletResponse) {
         Authentication auth = localAuthService.login(req);
+
+        SecurityContext context = SecurityContextHolder.createEmptyContext();
+        context.setAuthentication(auth);
+        SecurityContextHolder.setContext(context);
+        securityContextRepository.saveContext(context, servletRequest, servletResponse);
+
         UserPrincipal principal = (UserPrincipal) auth.getPrincipal();
         User user = userRepository.findById(principal.getUserId())
                 .orElseThrow(() -> new IllegalStateException("Authenticated user not found in DB"));
-        session.setAttribute("SPRING_SECURITY_CONTEXT",
-                org.springframework.security.core.context.SecurityContextHolder.getContext());
         return ResponseEntity.ok(toResponse(user));
     }
 
@@ -61,8 +73,9 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<Map<String, String>> logout(HttpSession session) {
-        session.invalidate();
+    public ResponseEntity<Map<String, String>> logout(HttpServletRequest servletRequest) {
+        servletRequest.getSession(false);
+        SecurityContextHolder.clearContext();
         return ResponseEntity.ok(Map.of("message", "Logged out"));
     }
 
