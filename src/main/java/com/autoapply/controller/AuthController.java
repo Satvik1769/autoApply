@@ -12,6 +12,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import java.util.List;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -41,6 +42,15 @@ public class AuthController {
         session.setAttribute("SPRING_SECURITY_CONTEXT",
                 org.springframework.security.core.context.SecurityContextHolder.getContext());
         return ResponseEntity.ok(toResponse(user));
+    }
+
+    @GetMapping("/providers")
+    public ResponseEntity<?> providers() {
+        return ResponseEntity.ok(Map.of("providers", List.of(
+            Map.of("name", "google",  "displayName", "Sign in with Google",  "url", "/oauth2/authorization/google"),
+            Map.of("name", "github",  "displayName", "Sign in with GitHub",  "url", "/oauth2/authorization/github"),
+            Map.of("name", "local",   "displayName", "Email & Password",     "url", "/api/v1/auth/login")
+        )));
     }
 
     @GetMapping("/me")
