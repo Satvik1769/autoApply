@@ -30,7 +30,10 @@ public class JdExtractionService {
             throw new JdExtractionException("Job description text cannot be empty");
         }
 
-        String hash = HashUtil.sha256(jdText);
+        // Normalize before hashing so trivial differences (extra spaces, casing)
+        // hit the same cache entry. Actual word changes still produce a new hash.
+        String normalized = jdText.toLowerCase().replaceAll("\\s+", " ").strip();
+        String hash = HashUtil.sha256(normalized);
 
         return cacheRepository.findByJdHash(hash)
                 .map(cached -> {
