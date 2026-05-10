@@ -2,9 +2,11 @@ package com.autoapply.controller;
 
 import com.autoapply.dto.request.LoginRequest;
 import com.autoapply.dto.request.RegisterRequest;
+import com.autoapply.dto.response.AuthResponse;
 import com.autoapply.dto.response.UserResponse;
 import com.autoapply.entity.User;
 import com.autoapply.repository.UserRepository;
+import com.autoapply.service.auth.JwtService;
 import com.autoapply.service.auth.LocalAuthService;
 import com.autoapply.service.auth.UserPrincipal;
 import jakarta.servlet.http.HttpServletRequest;
@@ -30,17 +32,20 @@ public class AuthController {
 
     private final UserRepository userRepository;
     private final LocalAuthService localAuthService;
+    private final JwtService jwtService;
     private final HttpSessionSecurityContextRepository securityContextRepository =
             new HttpSessionSecurityContextRepository();
 
     @PostMapping("/register")
-    public ResponseEntity<UserResponse> register(@Valid @RequestBody RegisterRequest req) {
+    public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest req) {
         User user = localAuthService.register(req);
-        return ResponseEntity.status(HttpStatus.CREATED).body(toResponse(user));
+        String token = jwtService.generate(user.getId(), user.getEmail());
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(AuthResponse.builder().token(token).user(toResponse(user)).build());
     }
 
     @PostMapping("/login")
-    public ResponseEntity<UserResponse> login(@Valid @RequestBody LoginRequest req,
+    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest req,
                                                HttpServletRequest servletRequest,
                                                HttpServletResponse servletResponse) {
         Authentication auth = localAuthService.login(req);
@@ -53,7 +58,8 @@ public class AuthController {
         UserPrincipal principal = (UserPrincipal) auth.getPrincipal();
         User user = userRepository.findById(principal.getUserId())
                 .orElseThrow(() -> new IllegalStateException("Authenticated user not found in DB"));
-        return ResponseEntity.ok(toResponse(user));
+        String token = jwtService.generate(user.getId(), user.getEmail());
+        return ResponseEntity.ok(AuthResponse.builder().token(token).user(toResponse(user)).build());
     }
 
     @GetMapping("/providers")

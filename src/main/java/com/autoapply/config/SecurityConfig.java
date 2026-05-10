@@ -1,8 +1,7 @@
 package com.autoapply.config;
 
-import com.autoapply.service.auth.CustomOAuth2UserService;
-import com.autoapply.service.auth.CustomOidcUserService;
-import com.autoapply.service.auth.LocalUserDetailsService;
+import com.autoapply.security.JwtAuthFilter;
+import com.autoapply.service.auth.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.NonNull;
@@ -20,6 +19,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 import java.util.Map;
 
@@ -29,6 +29,8 @@ import java.util.Map;
 public class SecurityConfig {
 
     @NonNull
+    private final JwtAuthFilter jwtAuthFilter;
+    @NonNull
     private final CustomOAuth2UserService customOAuth2UserService;
     @NonNull
     private final CustomOidcUserService customOidcUserService;
@@ -36,6 +38,8 @@ public class SecurityConfig {
     private final LocalUserDetailsService localUserDetailsService;
     @NonNull
     private final ObjectMapper objectMapper;
+    @NonNull
+    private final JwtService jwtService;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -58,6 +62,7 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
             .csrf(AbstractHttpConfigurer::disable)
+            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
             .authenticationProvider(daoAuthenticationProvider())
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(
@@ -109,7 +114,15 @@ public class SecurityConfig {
     }
 
     private AuthenticationSuccessHandler oauth2SuccessHandler() {
-        return (request, response, authentication) ->
-            response.sendRedirect("/api/v1/auth/me");
+        return (request, response, authentication) -> {
+            UserPrincipal principal =
+                    (UserPrincipal) authentication.getPrincipal();
+            String token = jwtService.generate(principal.getUserId(), principal.getEmail());
+            response.setStatus(HttpServletResponse.SC_OK);
+            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+            objectMapper.writeValue(response.getWriter(),
+                    Map.of("token", token, "userId", principal.getUserId().toString(),
+                            "email", principal.getEmail()));
+        };
     }
 }

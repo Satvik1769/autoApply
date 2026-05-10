@@ -96,7 +96,7 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ApiErrorResponse.builder()
                         .status(500)
-                        .message("An unexpected error occurred")
+                        .message("An unexpected error occurred " + ex.getMessage())
                         .build());
     }
 }
